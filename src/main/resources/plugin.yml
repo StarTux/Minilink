@@ -1,0 +1,24 @@
+name: Minilink
+description: Link the Minigames plugin across servers
+author: StarTux
+version: 0.1
+main: com.winthier.minilink.MinilinkPlugin
+depend: [ XServer ]
+softdepend: [ Minigames, Herochat ]
+database: true
+commands:
+  Minilink:
+    description: Admin interface
+    usage: 'Usage: /<command>'
+    permission: minilink.minilink
+  MiniMe:
+    description: User interface
+    usage: 'Usage: /<command>'
+    permission: minilink.minime
+permissions:
+  minilink.minilink:
+    description: Use the "/Minilink" command.
+    default: op
+  minilink.minime:
+    description: Use the "/MiniMe" command.
+    default: op
