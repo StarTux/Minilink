@@ -3,7 +3,7 @@ description: Link the Minigames plugin across servers
 author: StarTux
 version: 0.1
 main: com.winthier.minilink.MinilinkPlugin
-depend: [ XServer ]
+depend: [ Connect ]
 softdepend: [ Minigames, Herochat ]
 database: true
 commands:
