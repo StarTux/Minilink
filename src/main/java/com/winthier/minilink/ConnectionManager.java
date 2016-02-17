@@ -8,6 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.Base64;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 
@@ -30,10 +31,10 @@ public class ConnectionManager implements Listener {
     public void onConnectMessage(ConnectMessageEvent event) {
         if (!event.getMessage().getChannel().equals("Minilink")) return;
         try {
-            byte[] data = ((String)event.getMessage().getPayload()).getBytes();
+            byte[] data = Base64.getDecoder().decode((String)event.getMessage().getPayload());
             ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(data));
             Object obj = in.readObject();
-            if (!(obj instanceof Message)) throw new RuntimeException("Received packet of unexpected type " + obj.getClass().getName());
+            in.close();
             Message message = (Message)obj;
             message.setSourceServer(event.getMessage().getFrom());
             plugin.receiveMessage(message);
@@ -48,8 +49,9 @@ public class ConnectionManager implements Listener {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             ObjectOutputStream out = new ObjectOutputStream(baos);
             out.writeObject(message);
-            byte[] data = baos.toByteArray();
-            Connect.getInstance().broadcast("Minilink", new String(data));
+            out.close();
+            String string = Base64.getEncoder().encodeToString(baos.toByteArray());
+            Connect.getInstance().broadcast("Minilink", string);
         } catch (IOException ioe) {
             ioe.printStackTrace();
         }
