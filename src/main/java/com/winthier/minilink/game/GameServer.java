@@ -151,13 +151,13 @@ public class GameServer extends Server implements Listener {
         } break;
         case SHUTDOWN: {
             if (totalTicks % 20L == 0L) {
-                if (plugin.getServer().getOnlinePlayers().isEmpty()) {
+                if (shutdownTicks > 20*60*60 && plugin.getServer().getOnlinePlayers().isEmpty()) {
                     plugin.getServer().shutdown();
                     return;
                 }
                 int running = 0;
-                for (GameTable gameTable : plugin.database.getMyGames()) {
-                    if (!gameTable.isOver()) running += 1;
+                for (Game game: MinigamesPlugin.getGameManager().getGames()) {
+                    if (game.getState() != Game.State.OVER) running += 1;
                 }
                 if (running == 0) {
                     new BukkitRunnable() {
@@ -169,7 +169,7 @@ public class GameServer extends Server implements Listener {
                 }
             }
             if (shutdownTicks > shutdownTime) {
-                // If in shutdown mode more than 1 hour, force
+                // If in shutdown mode is too long, force
                 // shutdown the server.
                 for (Game game : MinigamesPlugin.getGameManager().getGames()) {
                     game.cancel();
