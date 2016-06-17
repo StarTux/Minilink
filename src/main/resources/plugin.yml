@@ -4,7 +4,7 @@ author: StarTux
 version: 0.1
 main: com.winthier.minilink.MinilinkPlugin
 depend: [ Connect ]
-softdepend: [ Minigames, Herochat ]
+softdepend: [ Minigames, Chat ]
 database: true
 commands:
   Minilink:
