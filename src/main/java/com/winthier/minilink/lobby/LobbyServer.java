@@ -1,8 +1,7 @@
 package com.winthier.minilink.lobby;
 
-import com.dthielke.herochat.Channel;
-import com.dthielke.herochat.Chatter;
-import com.dthielke.herochat.Herochat;
+import com.winthier.chat.ChatPlugin;
+import com.winthier.chat.channel.Channel;
 import com.winthier.minilink.MinilinkPlugin;
 import com.winthier.minilink.Server;
 import com.winthier.minilink.message.Message;
@@ -120,7 +119,7 @@ public class LobbyServer extends Server {
             }.runTaskLater(plugin, i++ * 20);
         }
         if (Configure.loadShouldAnnounce(message.getOptions())) {
-            Channel channel = Herochat.getChannelManager().getChannel("mini");
+            Channel channel = ChatPlugin.getInstance().findChannel("mini");
             if (channel == null) {
                 plugin.getLogger().warning("Channel [mini] not found");
             } else {
@@ -133,8 +132,7 @@ public class LobbyServer extends Server {
                 msg.add(JSON.button("&r[&6Join&r]", "/minime join " + gameUuid.toString(), "&a"+gameName+"\n&r&oJoin"));
                 msg.add(" ");
                 msg.add(JSON.button("&r[&6Spec&r]", "/minime spec " + gameUuid.toString(), "&a"+gameName+"\n&r&oSpectate"));
-                for (Chatter chatter : channel.getMembers()) {
-                    Player player = chatter.getPlayer();
+                for (Player player : channel.getLocalMembers()) {
                     if (player != null) {
                         Msg.sendRaw(player, msg);
                     }
