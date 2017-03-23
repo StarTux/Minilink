@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandException;
 import org.bukkit.command.CommandSender;
@@ -135,6 +136,7 @@ public class LobbyServer extends Server {
                 for (Player player : channel.getLocalMembers()) {
                     if (player != null) {
                         Msg.sendRaw(player, msg);
+                        player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_TWINKLE, 1.0f, 1.2f);
                     }
                 }
             }
