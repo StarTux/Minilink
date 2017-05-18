@@ -10,42 +10,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import javax.persistence.PersistenceException;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class MinilinkPlugin extends JavaPlugin {
     private final ConnectionManager connectionManager = new ConnectionManager(this);
-    public final Database database = new Database(this);
+    public Database database;
     private Server server;
 
     @Override
     public void onEnable() {
-        // Setup SQL Database
-        try {
-            for (Class<?> clazz : Database.getClasses()) {
-                getDatabase().find(clazz).findRowCount();
-            }
-        } catch (PersistenceException ex) {
-            getLogger().info("Installing database for " + getDescription().getName() + " due to first time usage");
-            // // Load all tables
-            // List<Object> beans = new ArrayList<>();
-            // for (Class<?> clazz : Database.getClasses()) {
-            //     try {
-            //         beans.addAll(getDatabase().find(clazz).findList());
-            //     } catch (PersistenceException pe) {
-            //         // ignore
-            //     }
-            // }
-            //try { removeDDL(); } catch (Exception e) {}
-            installDDL();
-            // getDatabase().save(beans);
-        }
-        // Load config
-        //saveDefaultConfig();
-        //reloadConfig();
-        // Setup XServer
+        database = new Database(this);
+        database.init();
         connectionManager.enable();
         // Setup server
         if (isGameServer()) {
@@ -83,11 +60,6 @@ public class MinilinkPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         if (server != null) server.disable();
-    }
-
-    @Override
-    public List<Class<?>> getDatabaseClasses() {
-        return Database.getClasses();
     }
 
     public String getXserverName() {

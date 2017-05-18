@@ -379,7 +379,7 @@ public class GameServer extends Server implements Listener {
         gameTable.setState(event.getState().name());
         plugin.database.save(gameTable);
         // Update game state
-        gameTable.setState(event.getState());
+        gameTable.setState(event.getState().name());
         plugin.database.save(gameTable);
         switch (event.getState()) {
         case PLAY: {

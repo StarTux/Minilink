@@ -1,9 +1,9 @@
 package com.winthier.minilink.sql;
 
-import com.avaje.ebean.EbeanServer;
 import com.winthier.minigames.game.Game;
 import com.winthier.minilink.MinilinkPlugin;
 import com.winthier.minilink.util.PlayerInfo;
+import com.winthier.sql.SQLDatabase;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
@@ -13,9 +13,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import lombok.Getter;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -23,39 +25,40 @@ import org.bukkit.configuration.MemoryConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 public class Database {
+    @Getter private static Database instance;
     public final MinilinkPlugin plugin;
     private final String ACTIVE_SERVER = "Active";
+    @Getter private SQLDatabase db;
 
     public Database(MinilinkPlugin plugin) {
+        instance = this;
         this.plugin = plugin;
     }
 
     public void init() {
-    }
-
-    private EbeanServer getDatabase() {
-        return plugin.getDatabase();
+        db = new SQLDatabase(plugin);
+        db.registerTables(PlayerTable.class,
+                          GameTable.class,
+                          ServerTable.class,
+                          GameConfigTable.class,
+                          ServerSettingsTable.class,
+                          QueueTable.class);
+        db.createAllTables();
     }
 
     public static List<Class<?>> getClasses() {
         List<Class<?>> list = new ArrayList<Class<?>>();
-        list.add(PlayerTable.class);
-        list.add(GameTable.class);
-        list.add(ServerTable.class);
-        list.add(GameConfigTable.class);
-        list.add(ServerSettingsTable.class);
-        list.add(QueueTable.class);
         return list;
     }
 
     public PlayerTable getPlayer(UUID uuid, String name) {
-        PlayerTable result = getDatabase().find(PlayerTable.class).where().eq("uuid", uuid).findUnique();
+        PlayerTable result = db.find(PlayerTable.class).where().eq("uuid", uuid).findUnique();
         if (result == null) {
             result = new PlayerTable(uuid, name);
-            getDatabase().save(result);
+            db.save(result);
         } else if (name != null && !result.getName().equals(name)) {
             result.setName(name);
-            getDatabase().save(result);
+            db.save(result);
         }
         return result;
     }
@@ -75,7 +78,7 @@ public class Database {
     }
 
     public ServerTable getServerByXserverName(String xserverName) {
-        ServerTable result = getDatabase().find(ServerTable.class).where().eq("xserver_name", xserverName).findUnique();
+        ServerTable result = db.find(ServerTable.class).where().eq("xserver_name", xserverName).findUnique();
         if (result == null) {
             plugin.getLogger().warning("Server " + xserverName + " was not entered into the servers table. The plugin may not work as expected until this is fixed.");
             result = new ServerTable();
@@ -94,13 +97,13 @@ public class Database {
                 // requested, it is usually a lobby server.
                 result.setType(ServerType.LOBBY);
             }
-            getDatabase().save(result);
+            db.save(result);
         }
         return result;
     }
 
     // public ServerTable getDefaultServer() {
-    //     ServerTable result = getDatabase().find(ServerTable.class).where().eq("type", ServerType.DEFAULT).setMaxRows(1).findUnique();
+    //     ServerTable result = db.find(ServerTable.class).where().eq("type", ServerType.DEFAULT).setMaxRows(1).findUnique();
     //     return result;
     // }
 
@@ -108,7 +111,7 @@ public class Database {
         List<String> result = new ArrayList<>();
         ServerTable homeServer = getPlayer(player).getHomeServer();
         if (homeServer != null && homeServer.getBungeeName() != null) result.add(homeServer.getBungeeName());
-        List<ServerTable> list =  getDatabase().find(ServerTable.class).where().isNotNull("bungee_name").findList();
+        List<ServerTable> list =  db.find(ServerTable.class).where().isNotNull("bungee_name").findList();
         //for (ServerTable serverTable : list) if (serverTable.getType().isDefaultLobbyServer()) result.add(serverTable.getBungeeName());
         for (ServerTable serverTable : list) if (serverTable.getType().isLobbyServer()) result.add(serverTable.getBungeeName());
         return result;
@@ -120,7 +123,7 @@ public class Database {
 
     public GameTable getGame(Game game) {
         GameTable result;
-        result = getDatabase().find(GameTable.class)
+        result = db.find(GameTable.class)
             .where().eq("uuid", game.getUuid()).findUnique();
         return result;
     }
@@ -139,42 +142,42 @@ public class Database {
         result.setPlayerCount(game.getPlayerCount());
         result.setMaxPlayers(game.getMaxPlayers());
         result.setCreationTime(new Timestamp(System.currentTimeMillis()));
-        getDatabase().save(result);
+        db.save(result);
         return result;
     }
 
     public GameTable getGame(UUID uuid) {
-        GameTable result = getDatabase().find(GameTable.class).where().eq("uuid", uuid).findUnique();
+        GameTable result = db.find(GameTable.class).where().eq("uuid", uuid).findUnique();
         return result;
     }
 
     public List<GameTable> getMyGames() {
         List<GameTable> result;
-        result = getDatabase().find(GameTable.class)
+        result = db.find(GameTable.class)
             .where().eq("server", getThisServer()).findList();
         return result;
     }
 
     public List<GameTable> getOpenGamesByKey(String... gameKeys) {
-        List<GameTable> result = getDatabase().find(GameTable.class).where().in("game_key", (Object[])gameKeys).ne("state", "OVER").findList();
+        List<GameTable> result = db.find(GameTable.class).where().in("game_key", Arrays.asList(gameKeys)).neq("state", "OVER").findList();
         return result;
     }
 
     public void save(Object bean) {
-        getDatabase().save(bean);
+        db.save(bean);
     }
 
     public void save(List<?> beans) {
-        getDatabase().save(beans);
+        db.save(beans);
     }
 
     public void delete(List<?> beans) {
-        getDatabase().delete(beans);
+        db.delete(beans);
     }
 
     public ConfigurationSection getGameConfig(String name) {
-        List<GameConfigTable> tables = getDatabase().find(GameConfigTable.class)
-            .where().eq("game_key", name).orderBy("page_number ASC").findList();
+        List<GameConfigTable> tables = db.find(GameConfigTable.class)
+            .where().eq("game_key", name).orderByAscending("page_number").findList();
         if (tables.isEmpty()) return null;
         YamlConfiguration result = new YamlConfiguration();
         StringBuilder sb = new StringBuilder();
@@ -189,7 +192,7 @@ public class Database {
 
     public void setServerSettings(String title, ServerTable server) {
         ServerSettingsTable settings;
-        settings = getDatabase()
+        settings = db
             .find(ServerSettingsTable.class)
             .where().eq("title", title).findUnique();
         if (settings == null) {
@@ -197,12 +200,12 @@ public class Database {
             settings.setTitle(title);
         }
         settings.setServer(server);
-        getDatabase().save(settings);
+        db.save(settings);
     }
 
     public ServerTable getServerSettings(String title) {
         ServerSettingsTable settings;
-        settings = getDatabase()
+        settings = db
             .find(ServerSettingsTable.class)
             .where().eq("title", title).findUnique();
         if (settings == null) return null;
@@ -222,9 +225,9 @@ public class Database {
         ServerTable activeServer = getActiveServer();
         //System.out.println("Active Server: " + (activeServer == null ? "null" : activeServer.getXserverName())); // DEBUG
         List<ServerTable> servers;
-        servers = getDatabase().find(ServerTable.class)
+        servers = db.find(ServerTable.class)
             .where().eq("type", ServerType.GAME)
-            .order("id").findList();
+            .orderByAscending("id").findList();
         //for (ServerTable serverTable : servers) System.out.println("- " + serverTable.getXserverName()); // DEBUG
         if (servers.isEmpty()) return -1; // pathological case; should never happen!
         ServerTable thisServer = getThisServer();
@@ -252,7 +255,7 @@ public class Database {
     public void dumpGameConfigs() {
         File dir = new File(plugin.getDataFolder(), "GameConfigs");
         dir.mkdirs();
-        for (GameConfigTable table : getDatabase().find(GameConfigTable.class).findList()) {
+        for (GameConfigTable table : db.find(GameConfigTable.class).findList()) {
             File file = new File(dir, table.getGameKey() + ".yml");
             try {
                 new FileOutputStream(file).getChannel().write(ByteBuffer.wrap(table.getConfig().getBytes()));
@@ -287,10 +290,10 @@ public class Database {
                 tables.add(new GameConfigTable(gameKey, i + 1, line));
             }
             // Delete old, if any
-            getDatabase().delete(getDatabase().find(GameConfigTable.class)
+            db.delete(db.find(GameConfigTable.class)
                                  .where().eq("game_key", gameKey).findList());
             // Save new
-            getDatabase().save(tables);
+            db.save(tables);
         }
     }
 }
