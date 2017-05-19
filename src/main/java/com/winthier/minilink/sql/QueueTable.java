@@ -18,8 +18,7 @@ import lombok.Setter;
  * Queued games retrieve their configuration from the
  * GameConfigTable.
  */
-@Entity
-@Table(name = "queues")
+@Entity @Getter @Setter @Table(name = "queues")
 public class QueueTable {
     @Id
     private Integer id;
